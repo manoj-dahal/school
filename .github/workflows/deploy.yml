@@ -80,4 +80,4 @@ jobs:
             docker run -d --name siddeshwor --restart unless-stopped \
               -p 3000:3000 \
               -v siddeshwor-data:/app/data \
-              "$IMAGE:latest"
+              "$IMAGE:latest" 
