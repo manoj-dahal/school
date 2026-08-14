@@ -1,6 +1,6 @@
-# Shree Siddeshwor Secondary School — Full Stack Clone
+# Shree Siddeshwor Secondary School — Full Stack 
 
-Complete copy of [https://www.siddeshwor.edu.np](https://www.siddeshwor.edu.np) including **frontend**, **backend API**, **SQLite database**, and **admin panel**.
+Complete of including **frontend**, **backend API**, **SQLite database**, and **admin panel**.
 
 ## What’s included
 
