@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Compile and health-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Compile backend
+        run: python -m py_compile backend/main.py backend/db.py backend/seed.py
+
+      - name: Seed database
+        run: python backend/seed.py
+
+      - name: Start API
+        working-directory: backend
+        run: |
+          set -e
+          python -m uvicorn main:app --host 127.0.0.1 --port 3000 &
+          echo $! > /tmp/uv.pid
+          ready=0
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health >/dev/null; then
+              echo "server ready"
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" = "1"
+
+      - name: Check public pages and APIs
+        run: |
+          set -e
+          curl -fsS -o /dev/null -w "home %{http_code}\n" http://127.0.0.1:3000/
+          curl -fsS -o /dev/null -w "admin %{http_code}\n" http://127.0.0.1:3000/admin/
+          curl -fsS -o /dev/null -w "suggest-page %{http_code}\n" http://127.0.0.1:3000/suggest/
+          curl -fsS -o /dev/null -w "health %{http_code}\n" http://127.0.0.1:3000/api/health
+          curl -fsS -o /dev/null -w "news %{http_code}\n" http://127.0.0.1:3000/api/news
+          curl -fsS http://127.0.0.1:3000/api/suggestions/public | python -c "import sys,json; d=json.load(sys.stdin); assert isinstance(d,list)"
+          for path in apply contact suggest; do
+            code=$(curl -s -o /tmp/${path}.json -w "%{http_code}" -X POST "http://127.0.0.1:3000/api/${path}" -H "Content-Type: application/json" -d "{}")
+            test "$code" = "400"
+            grep -q "Missing required fields" /tmp/${path}.json
+          done
+          echo "API contracts OK"
