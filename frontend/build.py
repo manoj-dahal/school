@@ -24,6 +24,7 @@ def page(title, page_id, depth, main, extra_head=""):
     <main>{main}</main>
     <div id="site-footer"></div>
   </div>
+  <script src="{base}assets/js/config.js"></script>
   <script src="{base}assets/js/main.js"></script>
 </body>
 </html>
@@ -954,10 +955,13 @@ notice_main = '''
         <p style="color:#dbeafe;margin-top:4px">Below are the official school routine pages for Shree Siddeshwor Secondary School, listed in order. All students and staff are requested to follow the schedule accordingly.</p>
       </div>
     </div>
+    <div id="noticeRoot">
+    <!-- Fallback routine pages: replaced by /api/notices when the backend is reachable -->
     <div class="routine"><h3>Page 1</h3><img src="https://i.ibb.co/LzqBhQ2P/page-2.png" alt="Routine Page 1"></div>
     <div class="routine"><h3>Page 2</h3><img src="https://i.ibb.co/sp6ZSd82/page-3.png" alt="Routine Page 2"></div>
     <div class="routine"><h3>Page 3</h3><img src="https://i.ibb.co/gL9zz8p1/page-4.png" alt="Routine Page 3"></div>
     <div class="routine"><h3>Page 4</h3><img src="https://i.ibb.co/wN5tj2mb/page-5.png" alt="Routine Page 4"></div>
+    </div>
   </div>
 </section>
 '''

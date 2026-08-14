@@ -254,7 +254,7 @@ def seed(reset: bool = False):
             for table in [
                 "subscribers", "contacts", "applications", "suggestions",
                 "activity", "faqs", "hero_slides", "notices", "academics",
-                "facilities", "staff", "news", "sessions", "settings", "users",
+                "facilities", "staff", "news", "gallery", "sessions", "settings", "users",
             ]:
                 conn.execute(f"DELETE FROM {table}")
 

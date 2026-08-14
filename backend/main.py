@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
@@ -27,7 +27,19 @@ from seed import seed
 ROOT = Path(__file__).resolve().parent.parent
 FRONTEND = ROOT / "frontend"
 ADMIN = ROOT / "admin"
+UPLOADS_DIR = ROOT / "data" / "uploads"
 SESSION_TTL = 60 * 60 * 12  # 12 hours
+
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024  # 8 MB
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+ALLOWED_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
+IMAGE_MAGIC = {
+    ".jpg": (b"\xff\xd8\xff",),
+    ".jpeg": (b"\xff\xd8\xff",),
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+    ".webp": (b"RIFF",),  # plus WEBP at offset 8
+    ".gif": (b"GIF87a", b"GIF89a"),
+}
 
 app = FastAPI(
     title="Siddeshwor School API",
@@ -65,6 +77,67 @@ def fetch_all(sql: str, params: tuple = ()):
 def fetch_one(sql: str, params: tuple = ()):
     with get_db() as conn:
         return row_to_dict(conn.execute(sql, params).fetchone())
+
+
+# ---------------------------------------------------------------------------
+# Upload helpers (gallery photos + notice pages)
+# ---------------------------------------------------------------------------
+def validate_image(filename: str, content_type: str | None, data: bytes) -> str:
+    ext = Path(filename or "").suffix.lower()
+    if ext not in ALLOWED_IMAGE_EXTS:
+        raise HTTPException(400, "Only JPEG, PNG, WebP and GIF images are allowed")
+    if content_type and content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(400, "Only JPEG, PNG, WebP and GIF images are allowed")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(400, "Image is too large (8 MB maximum)")
+    magic_ok = False
+    for magic in IMAGE_MAGIC[ext]:
+        if data[: len(magic)] == magic:
+            magic_ok = True
+            break
+    if ext == ".webp" and data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        magic_ok = True
+    if not magic_ok:
+        raise HTTPException(400, "File content does not match the image type")
+    return ext
+
+
+def save_upload(data: bytes, ext: str, prefix: str = "") -> str:
+    UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    name = f"{prefix}{secrets.token_hex(8)}{ext}"
+    (UPLOADS_DIR / name).write_bytes(data)
+    return name
+
+
+def upload_path_of(url: str) -> Path | None:
+    """Map a stored '/uploads/<name>' URL to its file on disk, or None."""
+    url = (url or "").strip()
+    if not url.startswith("/uploads/"):
+        return None
+    name = url[len("/uploads/"):]
+    if not name or "/" in name or "\\" in name or name in {".", ".."}:
+        return None
+    target = (UPLOADS_DIR / name).resolve()
+    try:
+        target.relative_to(UPLOADS_DIR.resolve())
+    except ValueError:
+        return None
+    return target
+
+
+def delete_upload_file(url: str) -> bool:
+    target = upload_path_of(url)
+    if target and target.is_file():
+        target.unlink()
+        return True
+    return False
+
+
+async def read_upload(file: UploadFile) -> tuple[str, bytes]:
+    """Validate an uploaded image and return (extension, content)."""
+    data = await file.read()
+    ext = validate_image(file.filename or "", file.content_type, data)
+    return ext, data
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +253,7 @@ def list_academics():
 
 @app.get("/api/notices")
 def list_notices():
-    return fetch_all("SELECT * FROM notices ORDER BY sort_order")
+    return fetch_all("SELECT * FROM notices ORDER BY page_num, sort_order, id")
 
 
 @app.post("/api/apply")
@@ -362,6 +435,7 @@ def admin_stats(user=Depends(current_user)):
         "news": count("news"),
         "staff": count("staff"),
         "notices": count("notices"),
+        "gallery": count("gallery"),
         "suggestions_new": count("suggestions", "status='new'"),
         "suggestions_total": count("suggestions"),
     }
@@ -601,13 +675,25 @@ def search(q: str = ""):
 
 @app.get("/api/gallery")
 def gallery():
-    items = []
+    items, seen = [], set()
+    # Managed photos come first, before hero slides and news images.
+    for g in fetch_all("SELECT * FROM gallery ORDER BY sort_order, id"):
+        url = (g.get("url") or "").strip()
+        if url and url not in seen:
+            seen.add(url)
+            items.append({
+                "url": url,
+                "alt": g.get("alt") or g.get("category") or "Photo",
+                "category": g.get("category") or "Gallery",
+            })
     try:
         for slide in fetch_all("SELECT url, alt FROM hero_slides ORDER BY sort_order"):
-            if slide.get("url"):
+            if slide.get("url") and slide["url"] not in seen:
+                seen.add(slide["url"])
                 items.append({"url": slide["url"], "alt": slide.get("alt") or "Campus", "category": "Campus"})
         for n in fetch_all("SELECT title, cover, images FROM news WHERE published = 1"):
-            if n.get("cover"):
+            if n.get("cover") and n["cover"] not in seen:
+                seen.add(n["cover"])
                 items.append({"url": n["cover"], "alt": n.get("title") or "News", "category": "News"})
             imgs = n.get("images") or []
             if isinstance(imgs, str):
@@ -622,16 +708,12 @@ def gallery():
                 elif isinstance(im, (list, tuple)) and im:
                     url = im[0]
                     alt = im[1] if len(im) > 1 else n.get("title")
-                if url:
+                if url and url not in seen:
+                    seen.add(url)
                     items.append({"url": url, "alt": alt or n.get("title") or "News", "category": "News"})
     except Exception:
-        items = []
-    seen, out = set(), []
-    for it in items:
-        if it["url"] not in seen:
-            seen.add(it["url"])
-            out.append(it)
-    return out
+        pass
+    return items
 
 
 @app.api_route("/api/apply", methods=["GET", "OPTIONS"])
@@ -730,6 +812,214 @@ def delete_contact(item_id: int, user=Depends(current_user)):
 
 
 # ---------------------------------------------------------------------------
+# Admin — gallery manager
+# ---------------------------------------------------------------------------
+class GalleryIn(BaseModel):
+    url: str
+    alt: str = ""
+    category: str = "General"
+    sort_order: int = 0
+
+
+class GalleryPatchIn(BaseModel):
+    url: str | None = None
+    alt: str | None = None
+    category: str | None = None
+    sort_order: int | None = None
+
+
+@app.get("/api/admin/gallery")
+def admin_gallery(user=Depends(current_user)):
+    return fetch_all("SELECT * FROM gallery ORDER BY sort_order, id")
+
+
+@app.post("/api/admin/gallery")
+def create_gallery(payload: GalleryIn, user=Depends(current_user)):
+    url = (payload.url or "").strip()
+    if not url:
+        raise HTTPException(400, "Photo URL is required")
+    with get_db() as conn:
+        cur = conn.execute(
+            """INSERT INTO gallery (url, alt, category, sort_order, uploaded, created_at)
+               VALUES (?,?,?,?,0,?)""",
+            (url, (payload.alt or "").strip(), (payload.category or "General").strip(),
+             int(payload.sort_order or 0), now_iso()),
+        )
+        new_id = cur.lastrowid
+    log_activity("gallery", f"Gallery photo added by URL ({url[:60]})")
+    return {"ok": True, "id": new_id}
+
+
+@app.patch("/api/admin/gallery/{item_id}")
+def update_gallery(item_id: int, payload: GalleryPatchIn, user=Depends(current_user)):
+    row = fetch_one("SELECT * FROM gallery WHERE id = ?", (item_id,))
+    if not row:
+        raise HTTPException(404, "Photo not found")
+    url = payload.url if payload.url is not None else row["url"]
+    url = (url or "").strip()
+    if not url:
+        raise HTTPException(400, "Photo URL is required")
+    uploaded = int(row["uploaded"] or 0)
+    if uploaded and url != row["url"]:
+        delete_upload_file(row["url"])
+        uploaded = 0
+    with get_db() as conn:
+        conn.execute(
+            """UPDATE gallery SET url=?, alt=?, category=?, sort_order=?, uploaded=? WHERE id=?""",
+            (
+                url,
+                (payload.alt if payload.alt is not None else (row["alt"] or "")).strip(),
+                (payload.category if payload.category is not None else (row["category"] or "General")).strip(),
+                int(payload.sort_order if payload.sort_order is not None else (row["sort_order"] or 0)),
+                uploaded,
+                item_id,
+            ),
+        )
+    return {"ok": True}
+
+
+@app.delete("/api/admin/gallery/{item_id}")
+def delete_gallery(item_id: int, user=Depends(current_user)):
+    row = fetch_one("SELECT * FROM gallery WHERE id = ?", (item_id,))
+    if not row:
+        raise HTTPException(404, "Photo not found")
+    if row["uploaded"]:
+        delete_upload_file(row["url"])
+    with get_db() as conn:
+        conn.execute("DELETE FROM gallery WHERE id = ?", (item_id,))
+    log_activity("gallery", f"Gallery photo {item_id} deleted")
+    return {"ok": True}
+
+
+@app.post("/api/admin/gallery/upload")
+async def upload_gallery_photo(
+    user=Depends(current_user),
+    file: UploadFile = File(...),
+    caption: str = Form(""),
+    category: str = Form("General"),
+    sort_order: int = Form(0),
+):
+    ext, data = await read_upload(file)
+    name = save_upload(data, ext)
+    with get_db() as conn:
+        cur = conn.execute(
+            """INSERT INTO gallery (url, alt, category, sort_order, uploaded, created_at)
+               VALUES (?,?,?,?,1,?)""",
+            (f"/uploads/{name}", caption.strip(), (category or "General").strip(),
+             int(sort_order or 0), now_iso()),
+        )
+        new_id = cur.lastrowid
+    log_activity("gallery", f"Gallery photo uploaded ({caption or name})")
+    return {"ok": True, "id": new_id, "url": f"/uploads/{name}"}
+
+
+# ---------------------------------------------------------------------------
+# Admin — notices manager
+# ---------------------------------------------------------------------------
+class NoticeIn(BaseModel):
+    title: str
+    image: str
+    page_num: int = 1
+    sort_order: int = 0
+
+
+class NoticePatchIn(BaseModel):
+    title: str | None = None
+    image: str | None = None
+    page_num: int | None = None
+    sort_order: int | None = None
+
+
+def _notice_fields(title, image, page_num):
+    title = str(title or "").strip()
+    image = str(image or "").strip()
+    if not title:
+        raise HTTPException(400, "Title is required")
+    if not image:
+        raise HTTPException(400, "Image URL is required")
+    try:
+        page = int(page_num)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Page number must be a number")
+    if page < 1:
+        raise HTTPException(400, "Page number must be 1 or greater")
+    return title, image, page
+
+
+@app.get("/api/admin/notices")
+def admin_notices(user=Depends(current_user)):
+    return fetch_all("SELECT * FROM notices ORDER BY page_num, sort_order, id")
+
+
+@app.post("/api/admin/notices")
+def create_notice(payload: NoticeIn, user=Depends(current_user)):
+    title, image, page = _notice_fields(payload.title, payload.image, payload.page_num)
+    with get_db() as conn:
+        cur = conn.execute(
+            "INSERT INTO notices (title, image, page_num, sort_order) VALUES (?,?,?,?)",
+            (title, image, page, int(payload.sort_order or 0)),
+        )
+        new_id = cur.lastrowid
+    log_activity("notices", f"Notice page {page} added")
+    return {"ok": True, "id": new_id}
+
+
+@app.patch("/api/admin/notices/{item_id}")
+def update_notice(item_id: int, payload: NoticePatchIn, user=Depends(current_user)):
+    row = fetch_one("SELECT * FROM notices WHERE id = ?", (item_id,))
+    if not row:
+        raise HTTPException(404, "Notice not found")
+    title = payload.title if payload.title is not None else row["title"]
+    image = payload.image if payload.image is not None else row["image"]
+    page = payload.page_num if payload.page_num is not None else row["page_num"]
+    title, image, page = _notice_fields(title, image, page)
+    if image != row["image"]:
+        delete_upload_file(row["image"])
+    with get_db() as conn:
+        conn.execute(
+            "UPDATE notices SET title=?, image=?, page_num=?, sort_order=? WHERE id=?",
+            (title, image, page,
+             int(payload.sort_order if payload.sort_order is not None else (row["sort_order"] or 0)),
+             item_id),
+        )
+    return {"ok": True}
+
+
+@app.delete("/api/admin/notices/{item_id}")
+def delete_notice(item_id: int, user=Depends(current_user)):
+    row = fetch_one("SELECT * FROM notices WHERE id = ?", (item_id,))
+    if not row:
+        raise HTTPException(404, "Notice not found")
+    delete_upload_file(row["image"])
+    with get_db() as conn:
+        conn.execute("DELETE FROM notices WHERE id = ?", (item_id,))
+    log_activity("notices", f"Notice page {row['page_num']} deleted")
+    return {"ok": True}
+
+
+@app.post("/api/admin/notices/upload")
+async def upload_notice_image(
+    user=Depends(current_user),
+    file: UploadFile = File(...),
+    title: str = Form(""),
+    page_num: int = Form(1),
+    sort_order: int = Form(0),
+):
+    title, _, page = _notice_fields(title, "/uploads/notice-", page_num)
+    ext, data = await read_upload(file)
+    name = save_upload(data, ext, prefix="notice-")
+    image = f"/uploads/{name}"
+    with get_db() as conn:
+        cur = conn.execute(
+            "INSERT INTO notices (title, image, page_num, sort_order) VALUES (?,?,?,?)",
+            (title, image, page, int(sort_order or 0)),
+        )
+        new_id = cur.lastrowid
+    log_activity("notices", f"Notice image uploaded ({title})")
+    return {"ok": True, "id": new_id, "image": image, "page_num": page}
+
+
+# ---------------------------------------------------------------------------
 # Static frontend + admin
 # ---------------------------------------------------------------------------
 def _safe_file(folder: Path, rel: str):
@@ -750,6 +1040,12 @@ def _safe_file(folder: Path, rel: str):
 async def spa_or_static(full_path: str):
     """Serve the cloned frontend and admin UI."""
     if full_path.startswith("api/"):
+        raise HTTPException(404, "Not found")
+    if full_path == "uploads" or full_path.startswith("uploads/"):
+        rel = full_path[len("uploads"):].lstrip("/")
+        found = _safe_file(UPLOADS_DIR, rel)
+        if found:
+            return FileResponse(found)
         raise HTTPException(404, "Not found")
     if full_path == "" or full_path == "/":
         return FileResponse(FRONTEND / "index.html")

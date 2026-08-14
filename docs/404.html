@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page not found | Shree Siddeshwor Secondary School</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: linear-gradient(160deg, #0e2744, #081829);
+      color: #fff; padding: 24px; text-align: center;
+    }
+    .card {
+      max-width: 560px; width: 100%; background: #fff; color: #1f2a3a;
+      border-radius: 10px; padding: 44px 34px 38px; border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+    }
+    .logo { height: 76px; margin-bottom: 14px; }
+    .code {
+      font-size: 84px; line-height: 1; font-weight: 800; letter-spacing: .04em;
+      color: #8f1d2c; font-family: Georgia, "Times New Roman", serif;
+    }
+    h1 { font-size: 24px; color: #10243f; margin: 10px 0 8px; font-family: Georgia, "Times New Roman", serif; }
+    p { color: #5b6470; font-size: 15px; line-height: 1.6; margin-bottom: 22px; }
+    .links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    a.btn {
+      display: inline-block; padding: 11px 20px; border-radius: 4px; text-decoration: none;
+      font-weight: 700; font-size: 14px; letter-spacing: .03em;
+    }
+    a.primary { background: #10243f; color: #fff; }
+    a.primary:hover { background: #8f1d2c; }
+    a.ghost { background: #fff; color: #10243f; border: 1px solid #d7dee7; }
+    a.ghost:hover { border-color: #10243f; }
+    .foot { margin-top: 22px; font-size: 12.5px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img class="logo" id="logo" src="assets/img/SiddeshworLogo.png" alt="Siddeshwor School logo">
+    <div class="code">404</div>
+    <h1>Page not found</h1>
+    <p>Sorry — the page you were looking for has moved, was renamed, or never existed.
+       The rest of the Siddeshwor website is still here.</p>
+    <div class="links">
+      <a class="btn primary" id="homeLink" href="index.html">Back to the homepage</a>
+      <a class="btn ghost" id="sitemapLink" href="sitemap/index.html">Site map</a>
+    </div>
+    <div class="foot">Shree Siddeshwor Secondary School · Shantinagar, New Baneshwor, Kathmandu</div>
+  </div>
+  <noscript>
+    <style>.links a { color: #10243f; }</style>
+  </noscript>
+  <script>
+    // This 404 page can be reached from any depth (GitHub Pages serves it for
+    // every missing path), so work out the site root by probing for the
+    // stylesheet, then point the assets and links at it.
+    (function () {
+      var here = location.pathname;                       // e.g. /school/some/missing/page
+      var dir = here.substring(0, here.lastIndexOf("/") + 1); // e.g. /school/some/missing/
+      var candidates = [];
+      var p = dir;
+      while (p.indexOf("/") !== -1 && p.length > 0) {
+        candidates.push(p);
+        var trimmed = p.substring(0, p.length - 1);
+        p = trimmed.substring(0, trimmed.lastIndexOf("/") + 1);
+      }
+      candidates.push("/");
+      function probe(i) {
+        if (i >= candidates.length) return;
+        var base = candidates[i];
+        fetch(base + "assets/css/style.css", { method: "HEAD" })
+          .then(function (r) { if (r.ok) apply(base); else probe(i + 1); })
+          .catch(function () { probe(i + 1); });
+      }
+      function apply(base) {
+        var logo = document.getElementById("logo");
+        if (logo) logo.src = base + "assets/img/SiddeshworLogo.png";
+        var home = document.getElementById("homeLink");
+        if (home) home.href = base;
+        var sm = document.getElementById("sitemapLink");
+        if (sm) sm.href = base + "sitemap/index.html";
+      }
+      probe(0);
+    })();
+  </script>
+</body>
+</html>

@@ -142,6 +142,16 @@ CREATE TABLE IF NOT EXISTS notices (
     sort_order INTEGER NOT NULL DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS gallery (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL,
+    alt TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT 'General',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    uploaded INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS hero_slides (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT NOT NULL,
@@ -250,6 +260,9 @@ def init_db():
             conn.execute("ALTER TABLE suggestions ADD COLUMN public INTEGER NOT NULL DEFAULT 0")
         if "anonymous" not in scols:
             conn.execute("ALTER TABLE suggestions ADD COLUMN anonymous INTEGER NOT NULL DEFAULT 0")
+        gcols = [r[1] for r in conn.execute("PRAGMA table_info(gallery)")]
+        if "uploaded" not in gcols:
+            conn.execute("ALTER TABLE gallery ADD COLUMN uploaded INTEGER NOT NULL DEFAULT 0")
         prune_sessions(conn)
         conn.execute(
             """UPDATE suggestions SET notes = 'Recorded by the school office.'
