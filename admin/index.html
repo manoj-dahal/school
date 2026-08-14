@@ -107,10 +107,32 @@
     .badge.rejected, .badge.archived { background: #fee2e2; color: #991b1b; }
     .badge.read, .badge.replied { background: #e0e7ff; color: #3730a3; }
 
-    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
     .modal { display: none; position: fixed; inset: 0; background: rgba(8,24,41,.55); z-index: 50; align-items: center; justify-content: center; padding: 20px; }
     .modal.open { display: flex; }
     .modal .box { background: #fff; border-radius: 8px; padding: 22px; width: min(640px, 100%); max-height: 90vh; overflow: auto; }
+
+    /* Photo card grid (gallery + notices) */
+    .ph-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+    .ph-card { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .ph-card .thumb { aspect-ratio: 4 / 3; background: #eef2f6; overflow: hidden; }
+    .ph-card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ph-card .body { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .ph-card .cap { font-size: 13px; font-weight: 600; color: var(--navy); }
+    .ph-card .sub { font-size: 12px; color: #6b7280; }
+    .ph-card .acts { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); background: #f8fafc; }
+    .badge.cat { background: #dbeafe; color: #1e40af; }
+    .badge.up { background: #d1fae5; color: #065f46; }
+    .badge.url { background: #ede9fe; color: #5b21b6; }
+    .badge.page { background: var(--navy); color: #fff; }
+    .ph-empty { grid-column: 1 / -1; padding: 40px 20px; text-align: center; color: #64748b; }
+
+    /* Upload dropzone */
+    .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 22px 14px; text-align: center; color: #64748b; background: #f8fafc; cursor: pointer; }
+    .drop.on { border-color: var(--navy); background: #eef2f6; color: var(--navy); }
+    .drop .small { margin-top: 6px; font-size: 12px; }
+    .drop img.preview { max-height: 170px; max-width: 100%; margin: 12px auto 0; display: block; border-radius: 4px; border: 1px solid var(--line); }
+    .box img.live-preview { max-height: 170px; display: block; margin: 0 auto 10px; border: 1px solid var(--line); border-radius: 4px; background: #f8fafc; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     @media (max-width: 900px) {
       #app-view { grid-template-columns: 1fr; }
@@ -148,6 +170,8 @@
         <a data-tab="msgs">Messages</a>
         <a data-tab="news">News</a>
         <a data-tab="staff">Staff</a>
+        <a data-tab="gallery">Gallery</a>
+        <a data-tab="notices">Notices</a>
         <a data-tab="subs">Subscribers</a>
         <a data-tab="settings">Settings</a>
         <a href="/" target="_blank">View website ↗</a>
@@ -223,6 +247,33 @@
         <h2 class="page">Staff directory</h2>
         <div id="staffTable"></div>
       </section>
+      <section id="tab-gallery" class="hidden">
+        <div class="toolbar">
+          <div>
+            <h2 class="page" style="margin:0">Gallery</h2>
+            <p style="font-size:13px;color:#64748b;margin-top:4px">Managed photos appear first in the public gallery, before hero slides and news images.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <select id="galFilter" style="width:auto;min-width:160px"><option value="">All categories</option></select>
+            <button class="btn" id="galUploadBtn">⬆ Upload photo</button>
+            <button class="btn ghost" id="galAddUrlBtn">+ Add by URL</button>
+          </div>
+        </div>
+        <div class="ph-grid" id="galGrid"></div>
+      </section>
+      <section id="tab-notices" class="hidden">
+        <div class="toolbar">
+          <div>
+            <h2 class="page" style="margin:0">Notices</h2>
+            <p style="font-size:13px;color:#64748b;margin-top:4px">Routine pages and announcements shown on the public notice board.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="notUpBtn">⬆ Upload image</button>
+            <button class="btn ghost" id="notAddUrlBtn">+ Add by URL</button>
+          </div>
+        </div>
+        <div class="ph-grid" id="notGrid"></div>
+      </section>
       <section id="tab-subs" class="hidden">
         <h2 class="page">Newsletter subscribers</h2>
         <div id="subsTable"></div>
@@ -255,6 +306,91 @@
     </form>
   </div>
 
+  <div class="modal" id="galUpModal">
+    <form class="box" id="galUpForm">
+      <h3 style="margin-bottom:12px">Upload photo</h3>
+      <div class="drop" id="galDrop">
+        <input type="file" id="galFile" accept=".jpg,.jpeg,.png,.webp,.gif" hidden>
+        <p>Drag &amp; drop a photo here, or <strong>click to browse</strong></p>
+        <p class="small">JPEG, PNG, WebP or GIF — up to 8 MB</p>
+        <img class="preview hidden" id="galPreview" alt="Preview">
+      </div>
+      <label style="margin-top:12px">Caption</label>
+      <input name="caption" placeholder="What is in the photo?">
+      <div class="row2">
+        <div><label>Category</label><input name="category" list="galCats" placeholder="Campus / Events / …"></div>
+        <div><label>Sort order</label><input name="sort_order" type="number" value="0"></div>
+      </div>
+      <datalist id="galCats"></datalist>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn" type="submit">Upload</button>
+        <button class="btn ghost" type="button" data-close="galUpModal">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="galUrlModal">
+    <form class="box" id="galUrlForm">
+      <h3 style="margin-bottom:12px" id="galUrlTitle">Add photo by URL</h3>
+      <input type="hidden" name="id">
+      <label>Photo URL</label>
+      <input name="url" required placeholder="https://… or /uploads/…">
+      <img class="live-preview hidden" id="galUrlPreview" alt="Preview">
+      <label>Caption</label>
+      <input name="alt" placeholder="What is in the photo?">
+      <div class="row2">
+        <div><label>Category</label><input name="category" list="galCats" value="General"></div>
+        <div><label>Sort order</label><input name="sort_order" type="number" value="0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn" type="submit">Save</button>
+        <button class="btn ghost" type="button" data-close="galUrlModal">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="notUpModal">
+    <form class="box" id="notUpForm">
+      <h3 style="margin-bottom:12px">Upload notice image</h3>
+      <div class="drop" id="notDrop">
+        <input type="file" id="notFile" accept=".jpg,.jpeg,.png,.webp,.gif" hidden>
+        <p>Drag &amp; drop a notice image here, or <strong>click to browse</strong></p>
+        <p class="small">JPEG, PNG, WebP or GIF — up to 8 MB</p>
+        <img class="preview hidden" id="notPreview" alt="Preview">
+      </div>
+      <label style="margin-top:12px">Title</label>
+      <input name="title" required placeholder="e.g. Weekly routine — Shrawan">
+      <div class="row2">
+        <div><label>Page number</label><input name="page_num" type="number" min="1" required></div>
+        <div><label>Sort order</label><input name="sort_order" type="number" value="0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn" type="submit">Upload</button>
+        <button class="btn ghost" type="button" data-close="notUpModal">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="modal" id="notUrlModal">
+    <form class="box" id="notUrlForm">
+      <h3 style="margin-bottom:12px" id="notUrlTitle">Add notice by URL</h3>
+      <input type="hidden" name="id">
+      <label>Image URL</label>
+      <input name="image" required placeholder="https://… or /uploads/…">
+      <img class="live-preview hidden" id="notUrlPreview" alt="Preview">
+      <label>Title</label>
+      <input name="title" required placeholder="e.g. Exam schedule">
+      <div class="row2">
+        <div><label>Page number</label><input name="page_num" type="number" min="1" value="1"></div>
+        <div><label>Sort order</label><input name="sort_order" type="number" value="0"></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn" type="submit">Save</button>
+        <button class="btn ghost" type="button" data-close="notUrlModal">Cancel</button>
+      </div>
+    </form>
+  </div>
+
 <script>
 const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
@@ -264,6 +400,12 @@ let selectedIdeaId = null;
 
 function esc(s) {
   return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+}
+
+// Named form controls: `form.id`/`form.title`/`form.url` can shadow built-in
+// form properties, so always read fields through the elements collection.
+function fd(form, name) {
+  return form.elements.namedItem(name);
 }
 
 async function api(path, opts={}) {
@@ -283,7 +425,7 @@ function openTab(id, opts={}) {
     const sel = $("#ideaStatus");
     if (sel) sel.value = opts.filterStatus;
   }
-  const loaders = { dash: loadDash, apps: loadApps, msgs: loadMsgs, ideas: loadIdeas, news: loadNews, staff: loadStaff, subs: loadSubs, settings: loadSettings };
+  const loaders = { dash: loadDash, apps: loadApps, msgs: loadMsgs, ideas: loadIdeas, news: loadNews, staff: loadStaff, gallery: loadGallery, notices: loadNotices, subs: loadSubs, settings: loadSettings };
   return loaders[id]?.();
 }
 function setIdeaBadge(n) {
@@ -352,7 +494,8 @@ async function loadDash() {
     [s.news, "News articles", "news", "", false],
     [s.staff, "Staff members", "staff", "", false],
     [s.contacts_total, "All messages", "msgs", "", false],
-    [s.notices, "Notice pages", "", "", false],
+    [s.gallery, "Gallery photos", "gallery", "", false],
+    [s.notices, "Notice pages", "notices", "", false],
   ];
   $("#stats").innerHTML = cards.map(([n,l,goto,filt,urgent]) => {
     const cls = ["card", goto ? "clickable" : "", (urgent && n > 0) ? "need" : ""].filter(Boolean).join(" ");
@@ -610,14 +753,14 @@ async function loadNews() {
 function openNews(item={}) {
   const f = $("#newsForm");
   f.reset();
-  f.id.value = item.id || "";
-  f.slug.value = item.slug || "";
-  f.title.value = item.title || "";
-  f.date_bs.value = item.date_bs || "";
-  f.cover.value = item.cover || "";
-  f.excerpt.value = item.excerpt || "";
-  f.body.value = item.body || "";
-  f.published.value = String(item.published ?? 1);
+  fd(f, "id").value = item.id || "";
+  fd(f, "slug").value = item.slug || "";
+  fd(f, "title").value = item.title || "";
+  fd(f, "date_bs").value = item.date_bs || "";
+  fd(f, "cover").value = item.cover || "";
+  fd(f, "excerpt").value = item.excerpt || "";
+  fd(f, "body").value = item.body || "";
+  fd(f, "published").value = String(item.published ?? 1);
   $("#newsModal").classList.add("open");
 }
 $("#newNews").addEventListener("click", () => openNews({}));
@@ -626,11 +769,11 @@ $("#newsForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const f = e.target;
   const body = {
-    slug: f.slug.value, title: f.title.value, date_bs: f.date_bs.value,
-    cover: f.cover.value, excerpt: f.excerpt.value, body: f.body.value,
-    published: Number(f.published.value), images: []
+    slug: fd(f, "slug").value, title: fd(f, "title").value, date_bs: fd(f, "date_bs").value,
+    cover: fd(f, "cover").value, excerpt: fd(f, "excerpt").value, body: fd(f, "body").value,
+    published: Number(fd(f, "published").value), images: []
   };
-  if (f.id.value) await api(`/api/admin/news/${f.id.value}`, { method: "PUT", body });
+  if (fd(f, "id").value) await api(`/api/admin/news/${fd(f, "id").value}`, { method: "PUT", body });
   else await api("/api/admin/news", { method: "POST", body });
   $("#newsModal").classList.remove("open");
   loadNews();
@@ -649,6 +792,282 @@ async function loadStaff() {
     </tr>`).join("")
   );
 }
+
+/* ---------------- Gallery manager ---------------- */
+let galItems = [];
+let notItems = [];
+
+async function uploadFile(path, form) {
+  const headers = {};
+  if (TOKEN) headers.Authorization = "Bearer " + TOKEN;
+  const res = await fetch(path, { method: "POST", headers, body: new FormData(form) });
+  if (res.status === 401) { logout(false); throw new Error("Unauthorized"); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || data.error || res.statusText);
+  return data;
+}
+
+function validImageFile(f) {
+  const nameOk = /\.(jpe?g|png|webp|gif)$/i.test(f.name || "") || /^image\/(jpeg|png|webp|gif)$/.test(f.type || "");
+  const sizeOk = (f.size || 0) <= 8 * 1024 * 1024;
+  if (!nameOk) return { ok: false, reason: "Only JPEG, PNG, WebP or GIF files are allowed." };
+  if (!sizeOk) return { ok: false, reason: "Image is larger than 8 MB." };
+  return { ok: true };
+}
+
+function bindDrop(dropId, fileId, previewId, onPick) {
+  const drop = $(dropId), file = $(fileId);
+  if (!drop) return;
+  const pick = (f) => {
+    if (!showFilePreview(previewId, f)) return;
+    try { // put the dropped file into the form's file input via DataTransfer
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      file.files = dt.files;
+    } catch { /* old browsers: the server will still validate */ }
+    if (onPick) onPick(f);
+  };
+  drop.addEventListener("click", (e) => { if (e.target === file) return; file.click(); });
+  ["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); drop.classList.add("on");
+  }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, (e) => {
+    e.preventDefault(); drop.classList.remove("on");
+  }));
+  drop.addEventListener("drop", (e) => {
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) pick(f);
+  });
+  file.addEventListener("change", () => { if (file.files && file.files[0]) pick(file.files[0]); });
+}
+
+function showFilePreview(previewId, f) {
+  const img = $(previewId);
+  if (!img) return;
+  const v = validImageFile(f);
+  if (!v.ok) { alert(v.reason); return false; }
+  const reader = new FileReader();
+  reader.onload = () => { img.src = reader.result; img.classList.remove("hidden"); };
+  reader.readAsDataURL(f);
+  return true;
+}
+
+function galCard(r) {
+  const badge = r.uploaded ? '<span class="badge up">uploaded</span>' : '<span class="badge url">URL</span>';
+  return `<div class="ph-card">
+    <div class="thumb"><img src="${esc(r.url)}" alt="${esc(r.alt || "")}" loading="lazy"></div>
+    <div class="body">
+      <div><span class="badge cat">${esc(r.category || "General")}</span> ${badge}</div>
+      <div class="cap">${esc(r.alt || "")}</div>
+      <div class="sub">Sort order ${esc(r.sort_order)} · #${r.id}</div>
+    </div>
+    <div class="acts">
+      <button class="btn sm ghost" data-gedit="${r.id}">Edit</button>
+      <button class="btn sm" data-gdel="${r.id}">Delete</button>
+    </div>
+  </div>`;
+}
+
+function notCard(r) {
+  return `<div class="ph-card">
+    <div class="thumb"><img src="${esc(r.image)}" alt="${esc(r.title)}" loading="lazy"></div>
+    <div class="body">
+      <div><span class="badge page">Page ${esc(r.page_num)}</span></div>
+      <div class="cap">${esc(r.title)}</div>
+      <div class="sub">Sort order ${esc(r.sort_order)} · #${r.id}</div>
+    </div>
+    <div class="acts">
+      <button class="btn sm ghost" data-nedit="${r.id}">Edit</button>
+      <button class="btn sm" data-ndel="${r.id}">Delete</button>
+    </div>
+  </div>`;
+}
+
+async function loadGallery() {
+  galItems = await api("/api/admin/gallery");
+  renderGallery();
+}
+function renderGallery() {
+  const filter = $("#galFilter");
+  const prev = filter ? filter.value : "";
+  const cats = [...new Set(galItems.map(r => (r.category || "").trim()).filter(Boolean))];
+  if (filter) {
+    filter.innerHTML = '<option value="">All categories</option>' +
+      cats.map(c => `<option>${esc(c)}</option>`).join("");
+    filter.value = cats.includes(prev) ? prev : "";
+  }
+  const sel = filter ? filter.value : "";
+  const list = sel ? galItems.filter(r => (r.category || "") === sel) : galItems;
+  $("#galGrid").innerHTML = list.map(galCard).join("") ||
+    '<p class="ph-empty">No photos yet. Upload one or add a photo by URL.</p>';
+  $$("#galGrid [data-gedit]").forEach(b => b.addEventListener("click", () => {
+    openGalUrl(galItems.find(x => String(x.id) === String(b.dataset.gedit)) || {});
+  }));
+  $$("#galGrid [data-gdel]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Delete this photo? If it was uploaded, the file is removed too.")) return;
+    try {
+      await api(`/api/admin/gallery/${b.dataset.gdel}`, { method: "DELETE" });
+      loadGallery(); loadDash();
+    } catch (err) { alert(err.message); }
+  }));
+}
+
+function updateGalUrlPreview() {
+  const f = $("#galUrlForm");
+  const v = (fd(f, "url").value || "").trim();
+  const img = $("#galUrlPreview");
+  if (v.startsWith("/uploads/") || /^https?:\/\//i.test(v)) {
+    img.src = v; img.classList.remove("hidden");
+    img.onerror = () => img.classList.add("hidden");
+  } else {
+    img.classList.add("hidden");
+  }
+}
+
+function openGalUrl(item = {}) {
+  const f = $("#galUrlForm");
+  f.reset();
+  fd(f, "id").value = item.id || "";
+  fd(f, "url").value = item.url || "";
+  fd(f, "alt").value = item.alt || "";
+  fd(f, "category").value = item.category || "General";
+  fd(f, "sort_order").value = item.sort_order ?? 0;
+  $("#galUrlTitle").textContent = item.id ? "Edit photo" : "Add photo by URL";
+  updateGalUrlPreview();
+  $("#galUrlModal").classList.add("open");
+}
+
+async function loadNotices() {
+  notItems = await api("/api/admin/notices");
+  renderNotices();
+}
+function renderNotices() {
+  $("#notGrid").innerHTML = notItems.map(notCard).join("") ||
+    '<p class="ph-empty">No notices yet. Upload an image or add one by URL.</p>';
+  $$("#notGrid [data-nedit]").forEach(b => b.addEventListener("click", () => {
+    openNotUrl(notItems.find(x => String(x.id) === String(b.dataset.nedit)) || {});
+  }));
+  $$("#notGrid [data-ndel]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Delete this notice? If it was uploaded, the image file is removed too.")) return;
+    try {
+      await api(`/api/admin/notices/${b.dataset.ndel}`, { method: "DELETE" });
+      loadNotices(); loadDash();
+    } catch (err) { alert(err.message); }
+  }));
+}
+
+function updateNotUrlPreview() {
+  const f = $("#notUrlForm");
+  const v = (fd(f, "image").value || "").trim();
+  const img = $("#notUrlPreview");
+  if (v.startsWith("/uploads/") || /^https?:\/\//i.test(v)) {
+    img.src = v; img.classList.remove("hidden");
+    img.onerror = () => img.classList.add("hidden");
+  } else {
+    img.classList.add("hidden");
+  }
+}
+
+function openNotUrl(item = {}) {
+  const f = $("#notUrlForm");
+  f.reset();
+  fd(f, "id").value = item.id || "";
+  fd(f, "image").value = item.image || "";
+  fd(f, "title").value = item.title || "";
+  fd(f, "page_num").value = item.page_num || 1;
+  fd(f, "sort_order").value = item.sort_order ?? 0;
+  $("#notUrlTitle").textContent = item.id ? "Edit notice" : "Add notice by URL";
+  updateNotUrlPreview();
+  $("#notUrlModal").classList.add("open");
+}
+
+/* Modal + dropzone wiring */
+$$(".modal [data-close]").forEach(b => b.addEventListener("click", () =>
+  b.closest(".modal")?.classList.remove("open")));
+$("#galUploadBtn")?.addEventListener("click", () => {
+  $("#galUpForm").reset();
+  $("#galPreview").classList.add("hidden"); $("#galFile").value = "";
+  $("#galUpModal").classList.add("open");
+});
+$("#galAddUrlBtn")?.addEventListener("click", () => openGalUrl({}));
+$("#notAddUrlBtn")?.addEventListener("click", () => openNotUrl({}));
+$("#notUpBtn")?.addEventListener("click", async () => {
+  if (!notItems.length) { try { notItems = await api("/api/admin/notices"); } catch {} }
+  const nextPage = notItems.reduce((m, n) => Math.max(m, Number(n.page_num) || 0), 0) + 1;
+  const nextSort = notItems.reduce((m, n) => Math.max(m, Number(n.sort_order) || 0), 0) + 1;
+  const f = $("#notUpForm");
+  f.reset();
+  fd(f, "title").value = `Routine Page ${nextPage}`;
+  fd(f, "page_num").value = nextPage;
+  fd(f, "sort_order").value = nextSort;
+  $("#notPreview").classList.add("hidden"); $("#notFile").value = "";
+  $("#notUpModal").classList.add("open");
+});
+$("#galFilter")?.addEventListener("change", renderGallery);
+fd($("#galUrlForm"), "url")?.addEventListener("input", updateGalUrlPreview);
+fd($("#notUrlForm"), "image")?.addEventListener("input", updateNotUrlPreview);
+
+bindDrop("#galDrop", "#galFile", "#galPreview");
+bindDrop("#notDrop", "#notFile", "#notPreview");
+
+$("#galUpForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const file = $("#galFile").files && $("#galFile").files[0];
+  if (!file) return alert("Choose a photo first.");
+  const v = validImageFile(file);
+  if (!v.ok) return alert(v.reason);
+  try {
+    await uploadFile("/api/admin/gallery/upload", f);
+    $("#galUpModal").classList.remove("open");
+    loadGallery(); loadDash();
+  } catch (err) { alert(err.message); }
+});
+$("#galUrlForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const body = {
+    url: fd(f, "url").value.trim(),
+    alt: fd(f, "alt").value.trim(),
+    category: fd(f, "category").value.trim() || "General",
+    sort_order: Number(fd(f, "sort_order").value) || 0,
+  };
+  try {
+    if (fd(f, "id").value) await api(`/api/admin/gallery/${fd(f, "id").value}`, { method: "PATCH", body });
+    else await api("/api/admin/gallery", { method: "POST", body });
+    $("#galUrlModal").classList.remove("open");
+    loadGallery(); loadDash();
+  } catch (err) { alert(err.message); }
+});
+$("#notUpForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const file = $("#notFile").files && $("#notFile").files[0];
+  if (!file) return alert("Choose an image first.");
+  const v = validImageFile(file);
+  if (!v.ok) return alert(v.reason);
+  try {
+    await uploadFile("/api/admin/notices/upload", f);
+    $("#notUpModal").classList.remove("open");
+    loadNotices(); loadDash();
+  } catch (err) { alert(err.message); }
+});
+$("#notUrlForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const body = {
+    title: fd(f, "title").value.trim(),
+    image: fd(f, "image").value.trim(),
+    page_num: Number(fd(f, "page_num").value) || 0,
+    sort_order: Number(fd(f, "sort_order").value) || 0,
+  };
+  try {
+    if (fd(f, "id").value) await api(`/api/admin/notices/${fd(f, "id").value}`, { method: "PATCH", body });
+    else await api("/api/admin/notices", { method: "POST", body });
+    $("#notUrlModal").classList.remove("open");
+    loadNotices(); loadDash();
+  } catch (err) { alert(err.message); }
+});
 
 async function loadSubs() {
   const rows = await api("/api/admin/subscribers");

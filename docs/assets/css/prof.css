@@ -1,0 +1,4 @@
+/* Institutional refinements — loaded after style.css */
+.site-header { box-shadow: none; }
+.brand h1 { font-family: var(--display); }
+.btn-apply { box-shadow: none; }
