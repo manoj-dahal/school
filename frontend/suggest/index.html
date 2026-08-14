@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suggestion Desk | Shree Siddeshwor Secondary School</title>
+  <meta name="description" content="Share an idea with Shree Siddeshwor Secondary School — campus, academics, safety or events.">
+  <link rel="icon" href="../assets/img/favicon.ico">
+  <link rel="icon" href="../assets/img/SiddeshworLogo.png">
+  <link rel="stylesheet" href="../assets/css/style.css?v=inst6">
+  <link rel="stylesheet" href="../assets/css/prof.css?v=inst6">
+</head>
+<body data-base="../" data-page="suggest">
+  <div class="page">
+    <div id="site-header"></div>
+    <main>
+      <div class="page-hero short">
+        <img src="https://i.ibb.co/rGBWKd5G/IMG-20260803-WA0095.jpg" alt="Suggestion desk">
+        <div class="shade"></div>
+        <div class="copy">
+          <span class="kicker">Office of the school</span>
+          <h1>Suggestion desk</h1>
+          <p>Write to the office. Every note is read.</p>
+        </div>
+      </div>
+      <section class="section white">
+        <div class="container">
+          <div class="suggest-split">
+            <div>
+              <p class="eyebrow">How it works</p>
+              <h2 class="h2">Tell us what to try next</h2>
+              <p class="muted" style="margin-bottom:18px">Parents, students, staff, alumni and neighbours can send a short, constructive idea. The office reviews every suggestion the same day it arrives.</p>
+              <div class="steps" style="grid-template-columns:1fr;margin:0 0 28px">
+                <div class="step"><div class="n">1</div><h3>Write a short idea</h3><p class="small">One change, one reason — campus, class, safety or an event.</p></div>
+                <div class="step"><div class="n">2</div><h3>Office reviews it</h3><p class="small">You get a reference number. We follow up if we need more detail.</p></div>
+                <div class="step"><div class="n">3</div><h3>We act or reply</h3><p class="small">Some ideas become notices. Some land on the public board below.</p></div>
+              </div>
+              <div class="docs-box">
+                <strong>Good suggestions sound like</strong>
+                <ul>
+                  <li>“Add a drinking-water station near the junior block.”</li>
+                  <li>“Start a Saturday reading club for Grade 4–6.”</li>
+                  <li>“Publish the weekly routine as a downloadable PDF.”</li>
+                </ul>
+              </div>
+            </div>
+            <div class="form-card" style="margin:0;max-width:none">
+              <h2>Send a suggestion</h2>
+              <p class="form-note">Fields marked with <span class="req">*</span> are required. You will receive a reference like SSN-0004.</p>
+              <form data-success="Thank you. Your suggestion has reached the school office.">
+                <div class="field"><label>Your name <span class="req">*</span></label><input name="name" required></div>
+                <div class="row-2" style="margin-top:12px">
+                  <div class="field"><label>I am a <span class="req">*</span></label>
+                    <select name="role" required>
+                      <option value="">Select</option>
+                      <option>Parent</option>
+                      <option>Student</option>
+                      <option>Staff</option>
+                      <option>Alumni</option>
+                      <option>Community</option>
+                    </select>
+                  </div>
+                  <div class="field"><label>Phone</label><input type="tel" name="phone" placeholder="Optional"></div>
+                </div>
+                <div class="field" style="margin-top:12px"><label>Email</label><input type="email" name="email" placeholder="Optional — we reply here if needed"></div>
+                <div class="field" style="margin-top:12px"><label>Topic</label>
+                  <div class="chip-row">
+                    <label><input type="radio" name="category" value="General" checked><span>General</span></label>
+                    <label><input type="radio" name="category" value="Academics"><span>Academics</span></label>
+                    <label><input type="radio" name="category" value="Facilities"><span>Facilities</span></label>
+                    <label><input type="radio" name="category" value="Events"><span>Events</span></label>
+                    <label><input type="radio" name="category" value="Safety"><span>Safety</span></label>
+                    <label><input type="radio" name="category" value="Other"><span>Other</span></label>
+                  </div>
+                </div>
+                <div class="field" style="margin-top:4px"><label>Your suggestion <span class="req">*</span></label>
+                  <textarea name="message" rows="6" required maxlength="800" placeholder="What should Siddeshwor consider?"></textarea>
+                </div>
+                <label class="check"><input type="checkbox" name="anonymous" value="1"> Keep my name off the public idea board</label>
+                <button class="btn" type="submit" style="width:100%;margin-top:8px">Submit suggestion</button>
+                <div class="alert"></div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="section gray">
+        <div class="container">
+          <p class="eyebrow center" style="display:flex;justify-content:center">In motion</p>
+          <h2 class="h2 center">Ideas the school is working on</h2>
+          <p class="lead">A few notes the office has marked public — so you can see that suggestions do not disappear.</p>
+          <div class="idea-board" id="ideaBoard"></div>
+        </div>
+      </section>
+      <section class="section white">
+        <div class="container">
+          <h2 class="h2 center">Suggestion FAQ</h2>
+          <div class="faq">
+            <div class="faq-item"><button type="button">Who can send a suggestion?<span>+</span></button><div class="a">Anyone connected to the school — parents, students, staff, alumni and neighbours.</div></div>
+            <div class="faq-item"><button type="button">Will you publish my name?<span>+</span></button><div class="a">No. The public board only shows the idea and topic. Tick the checkbox if you also want the office to treat the note as anonymous.</div></div>
+            <div class="faq-item"><button type="button">How fast do you reply?<span>+</span></button><div class="a">The office reads every note. We reply by phone or email only when we need more detail or when an idea becomes a notice.</div></div>
+          </div>
+        </div>
+      </section>
+    </main>
+    <div id="site-footer"></div>
+  </div>
+  <script src="../assets/js/main.js?v=inst6"></script>
+</body>
+</html>

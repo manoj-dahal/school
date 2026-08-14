@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin · Siddeshwor School</title>
+  <link rel="icon" href="/assets/img/favicon.ico">
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Source+Sans+3:wght@400;500;600;700&display=swap");
+    :root { --red:#8f1d2c; --navy:#10243f; --bg:#f3f5f8; --line:#d7dee7; --ok:#059669; --warn:#d97706; --gold:#a5843a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Source Sans 3", Inter, system-ui, sans-serif; background: var(--bg); color: #1f2a3a; }
+    a { color: inherit; }
+    .hidden { display: none !important; }
+
+    /* Login */
+    #login-view { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #0e2744, #081829); padding: 24px; }
+    .login-card { background: #fff; width: min(420px, 100%); border-radius: 8px; padding: 36px 32px; box-shadow: 0 24px 60px rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.08); }
+    .login-card img { height: 64px; margin: 0 auto 12px; display: block; }
+    .login-card h1 { text-align: center; font-size: 22px; color: var(--navy); font-family: "Libre Baskerville", Georgia, serif; }
+    .login-card p { text-align: center; color: #6b7280; font-size: 13px; margin: 6px 0 22px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 6px; }
+    input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; font: inherit; background: #fff; }
+    input:focus, select:focus, textarea:focus { outline: 2px solid #a5843a55; border-color: var(--navy); }
+    .btn { background: var(--navy); color: #fff; border: 0; border-radius: 4px; padding: 11px 18px; font-weight: 700; cursor: pointer; letter-spacing: .04em; }
+    .btn:hover { background: #a01829; }
+    .btn.navy { background: var(--navy); }
+    .btn.ghost { background: #fff; color: var(--navy); border: 1px solid var(--line); }
+    .btn.sm { padding: 6px 10px; font-size: 12px; }
+    .err { color: #b91c1c; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+    /* Shell */
+    #app-view { min-height: 100vh; display: grid; grid-template-columns: 248px 1fr; }
+    aside { background: var(--navy); color: #fff; padding: 20px 14px; }
+    aside .brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 14px; }
+    aside .brand img { height: 40px; filter: brightness(0) invert(1); }
+    aside .brand strong { font-size: 13px; display: block; letter-spacing: .04em; }
+    aside .brand span { font-size: 11px; opacity: .7; color: #e8d7a2; }
+    aside nav a { display: block; padding: 10px 12px; border-radius: 4px; color: #dbeafe; font-size: 13px; font-weight: 600; text-decoration: none; margin: 3px 0; cursor: pointer; letter-spacing: .04em; text-transform: uppercase; }
+    aside nav a:hover, aside nav a.active { background: rgba(255,255,255,.12); color: #fff; }
+    aside nav a .count {
+      float: right; min-width: 18px; height: 18px; padding: 0 6px;
+      border-radius: 9px; background: #c9a227; color: #122033;
+      font-size: 11px; line-height: 18px; text-align: center;
+    }
+    aside nav a .count:empty { display: none; }
+    aside .who { margin-top: 24px; padding: 12px; font-size: 12px; opacity: .8; }
+    tr.row-new { background: #fff8e8; box-shadow: inset 3px 0 0 #c9a227; }
+    tr.row-new td:first-child { font-weight: 700; }
+    .tally { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+    .tally button {
+      border: 1px solid var(--line); background: #fff; color: #334155;
+      padding: 7px 12px; border-radius: 4px; font: 600 12px/1 "Source Sans 3", sans-serif;
+      letter-spacing: .04em; text-transform: uppercase; cursor: pointer;
+    }
+    .tally button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .tally button .n { font-family: "Libre Baskerville", Georgia, serif; margin-left: 6px; }
+    .tally button.warn { border-color: #e6d7b0; background: #fff8e8; }
+    .tally button.warn.on { background: #8f1d2c; border-color: #8f1d2c; color: #fff; }
+    .inbox { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 14px; min-height: 520px; }
+    .inbox-list, .inbox-detail { background: #fff; border: 1px solid var(--line); border-radius: 8px; overflow: auto; }
+    .idea-item {
+      display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line);
+      background: #fff; padding: 12px 14px; cursor: pointer; font: inherit; color: inherit;
+    }
+    .idea-item:hover { background: #f8fafc; }
+    .idea-item.on { background: #eef2f6; box-shadow: inset 3px 0 0 var(--navy); }
+    .idea-item.row-new { background: #fff8e8; box-shadow: inset 3px 0 0 #c9a227; }
+    .idea-item.row-new.on { background: #fff3d1; }
+    .idea-item .ref { font-size: 11px; letter-spacing: .06em; color: #64748b; }
+    .idea-item .who { font-weight: 700; color: var(--navy); margin: 2px 0 4px; }
+    .idea-item .snip { font-size: 13px; color: #475569; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .idea-item .meta { margin-top: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .inbox-detail { padding: 22px 24px; }
+    .inbox-detail .ref-lg { font-family: "Libre Baskerville", Georgia, serif; font-size: 22px; color: var(--navy); }
+    .inbox-detail .letter { background: #f8fafc; border: 1px solid var(--line); padding: 16px; margin: 14px 0; font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
+    .act-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .empty-desk { padding: 40px 20px; text-align: center; color: #64748b; }
+    @media (max-width: 900px) { .inbox { grid-template-columns: 1fr; } }
+    .need-bar {
+      background: #fff8e8; border: 1px solid #e6d7b0; color: #6b4e0b;
+      padding: 10px 14px; margin-bottom: 14px; font-size: 14px; font-weight: 600;
+    }
+    .need-bar a { color: var(--navy); text-decoration: underline; cursor: pointer; }
+    .need-bar.ok { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+    .card.need { border-color: #e6d7b0; background: #fffdf6; cursor: pointer; }
+    .card.need .n { color: #8f1d2c; }
+    .card.clickable { cursor: pointer; }
+    .card.clickable:hover, .card.need:hover { border-color: var(--navy); }
+    aside nav a .count { animation: badge-in .2s ease; }
+    @keyframes badge-in { from { transform: scale(.7); } to { transform: scale(1); } }
+
+    main { padding: 28px; }
+    h2.page { font-size: 28px; margin-bottom: 18px; font-family: "Libre Baskerville", Georgia, serif; color: var(--navy); }
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+    .card { background: #fff; border-radius: 8px; padding: 18px; box-shadow: none; border: 1px solid var(--line); }
+    .card .n { font-size: 28px; font-weight: 700; color: var(--navy); font-family: "Libre Baskerville", Georgia, serif; }
+    .card .l { font-size: 13px; color: #6b7280; margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: none; font-size: 13px; border: 1px solid var(--line); }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { background: #eef2f6; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: #64748b; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge.new { background: #fef3c7; color: #92400e; }
+    .badge.reviewing { background: #dbeafe; color: #1e40af; }
+    .badge.accepted, .badge.done { background: #d1fae5; color: #065f46; }
+    .badge.rejected, .badge.archived { background: #fee2e2; color: #991b1b; }
+    .badge.read, .badge.replied { background: #e0e7ff; color: #3730a3; }
+
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(8,24,41,.55); z-index: 50; align-items: center; justify-content: center; padding: 20px; }
+    .modal.open { display: flex; }
+    .modal .box { background: #fff; border-radius: 8px; padding: 22px; width: min(640px, 100%); max-height: 90vh; overflow: auto; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 900px) {
+      #app-view { grid-template-columns: 1fr; }
+      aside { display: flex; flex-wrap: wrap; gap: 8px; }
+      .cards { grid-template-columns: 1fr 1fr; }
+      .row2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="login-view">
+    <form class="login-card" id="loginForm">
+      <img src="/assets/img/SiddeshworLogo.png" alt="Logo">
+      <h1>Siddeshwor Admin</h1>
+      <p>Shree Siddeshwor Secondary School</p>
+      <label>Username</label>
+      <input name="username" autocomplete="username" required>
+      <label>Password</label>
+      <input name="password" type="password" autocomplete="current-password" required>
+      <button class="btn" type="submit" style="width:100%;margin-top:18px">Sign in</button>
+      <div class="err" id="loginErr"></div>
+    </form>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <aside>
+      <div class="brand">
+        <img src="/assets/img/SiddeshworLogo.png" alt="">
+        <div><strong>SIDDESHWOR</strong><span>Admin Panel</span></div>
+      </div>
+      <nav>
+        <a data-tab="dash" class="active">Dashboard</a>
+        <a data-tab="ideas">Suggestions <span class="count" id="ideaBadge"></span></a>
+        <a data-tab="apps">Applications</a>
+        <a data-tab="msgs">Messages</a>
+        <a data-tab="news">News</a>
+        <a data-tab="staff">Staff</a>
+        <a data-tab="subs">Subscribers</a>
+        <a data-tab="settings">Settings</a>
+        <a href="/" target="_blank">View website ↗</a>
+        <a href="/api/docs" target="_blank">API docs ↗</a>
+        <a id="logout">Log out</a>
+      </nav>
+      <div class="who" id="who"></div>
+    </aside>
+    <main>
+      <section id="tab-dash">
+        <h2 class="page">Dashboard</h2>
+        <div class="need-bar hidden" id="needBar"></div>
+        <div class="cards" id="stats"></div>
+        <div class="row2">
+          <div class="card" id="recentApps"><h3 style="margin-bottom:10px">Latest applications</h3></div>
+          <div class="card" id="recentIdeas"><h3 style="margin-bottom:10px">Latest suggestions</h3></div>
+        </div>
+        <div class="card" id="recentAct" style="margin-top:14px"><h3 style="margin-bottom:10px">Activity</h3></div>
+      </section>
+      <section id="tab-apps" class="hidden">
+        <div class="toolbar">
+          <h2 class="page" style="margin:0">Admission Applications</h2>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="appFilter" placeholder="Filter name, grade, email…" style="min-width:220px">
+            <a class="btn ghost" id="exportApps" href="#">Export CSV</a>
+          </div>
+        </div>
+        <div id="appsTable"></div>
+      </section>
+      <section id="tab-msgs" class="hidden">
+        <h2 class="page">Contact Messages</h2>
+        <div id="msgsTable"></div>
+      </section>
+      <section id="tab-ideas" class="hidden">
+        <div class="toolbar">
+          <div>
+            <h2 class="page" style="margin:0">Suggestion desk</h2>
+            <p style="font-size:13px;color:#64748b;margin-top:4px">Required office inbox — review every note before it can appear on the public board.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <input id="ideaFilter" placeholder="Filter name, topic, text…" style="min-width:220px">
+            <select id="ideaStatus">
+              <option value="">All statuses</option>
+              <option value="new">new</option>
+              <option value="reviewing">reviewing</option>
+              <option value="done">done</option>
+              <option value="archived">archived</option>
+            </select>
+            <select id="ideaTopic">
+              <option value="">All topics</option>
+              <option>General</option>
+              <option>Academics</option>
+              <option>Facilities</option>
+              <option>Events</option>
+              <option>Safety</option>
+              <option>Other</option>
+            </select>
+            <a class="btn ghost" id="exportIdeas" href="#">Export CSV</a>
+          </div>
+        </div>
+        <div class="need-bar" id="ideaNeed">Loading suggestion desk…</div>
+        <div class="tally" id="ideaTally"></div>
+        <div id="ideasTable"></div>
+      </section>
+      <section id="tab-news" class="hidden">
+        <div class="toolbar">
+          <h2 class="page" style="margin:0">News</h2>
+          <button class="btn" id="newNews">+ New article</button>
+        </div>
+        <div id="newsTable"></div>
+      </section>
+      <section id="tab-staff" class="hidden">
+        <h2 class="page">Staff directory</h2>
+        <div id="staffTable"></div>
+      </section>
+      <section id="tab-subs" class="hidden">
+        <h2 class="page">Newsletter subscribers</h2>
+        <div id="subsTable"></div>
+      </section>
+      <section id="tab-settings" class="hidden">
+        <h2 class="page">School settings</h2>
+        <form class="card" id="settingsForm" style="max-width:720px"></form>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="newsModal">
+    <form class="box" id="newsForm">
+      <h3 style="margin-bottom:12px">News article</h3>
+      <input type="hidden" name="id">
+      <label>Slug</label><input name="slug" required placeholder="see-farewell-program-2082">
+      <label>Title</label><input name="title" required>
+      <div class="row2">
+        <div><label>Date (BS)</label><input name="date_bs" required placeholder="Jestha, 2083"></div>
+        <div><label>Cover image URL</label><input name="cover" required></div>
+      </div>
+      <label>Excerpt</label><textarea name="excerpt" rows="2" required></textarea>
+      <label>Body</label><textarea name="body" rows="5" required></textarea>
+      <label>Published</label>
+      <select name="published"><option value="1">Yes</option><option value="0">No</option></select>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn" type="submit">Save</button>
+        <button class="btn ghost" type="button" id="closeNews">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+<script>
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+let TOKEN = localStorage.getItem("ssn_token") || "";
+let USER = null;
+let selectedIdeaId = null;
+
+function esc(s) {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+}
+
+async function api(path, opts={}) {
+  const headers = { "Content-Type": "application/json", ...(opts.headers||{}) };
+  if (TOKEN) headers.Authorization = "Bearer " + TOKEN;
+  const res = await fetch(path, { ...opts, headers, body: opts.body ? JSON.stringify(opts.body) : undefined });
+  if (res.status === 401) { logout(false); throw new Error("Unauthorized"); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || data.error || res.statusText);
+  return data;
+}
+
+function openTab(id, opts={}) {
+  $$("aside nav a[data-tab]").forEach(x => x.classList.toggle("active", x.dataset.tab === id));
+  $$("main > section").forEach(s => s.classList.toggle("hidden", s.id !== "tab-"+id));
+  if (id === "ideas" && opts.filterStatus !== undefined) {
+    const sel = $("#ideaStatus");
+    if (sel) sel.value = opts.filterStatus;
+  }
+  const loaders = { dash: loadDash, apps: loadApps, msgs: loadMsgs, ideas: loadIdeas, news: loadNews, staff: loadStaff, subs: loadSubs, settings: loadSettings };
+  return loaders[id]?.();
+}
+function setIdeaBadge(n) {
+  const b = $("#ideaBadge");
+  if (!b) return;
+  b.textContent = n > 0 ? String(n) : "";
+}
+function showApp() {
+  $("#login-view").classList.add("hidden");
+  $("#app-view").classList.remove("hidden");
+  $("#who").textContent = USER ? `${USER.name} · ${USER.role}` : "";
+  loadDash().then((s) => {
+    if (s && s.suggestions_new > 0) openTab("ideas", { filterStatus: "new" });
+  }).catch(() => {});
+}
+function showLogin() {
+  $("#login-view").classList.remove("hidden");
+  $("#app-view").classList.add("hidden");
+}
+function logout(call=true) {
+  if (call && TOKEN) api("/api/admin/logout", { method: "POST" }).catch(()=>{});
+  TOKEN = ""; USER = null; localStorage.removeItem("ssn_token");
+  showLogin();
+}
+
+$("#loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("#loginErr").textContent = "";
+  const fd = new FormData(e.target);
+  try {
+    const data = await api("/api/admin/login", { method: "POST", body: { username: fd.get("username"), password: fd.get("password") } });
+    TOKEN = data.token; USER = data.user; localStorage.setItem("ssn_token", TOKEN);
+    showApp();
+  } catch (err) { $("#loginErr").textContent = err.message; }
+});
+$("#logout").addEventListener("click", () => logout());
+
+$$("aside nav a[data-tab]").forEach(a => a.addEventListener("click", () => openTab(a.dataset.tab)));
+
+function table(headers, rowsHtml) {
+  return `<div style="overflow:auto"><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rowsHtml}</tbody></table></div>`;
+}
+
+async function loadDash() {
+  const s = await api("/api/admin/stats");
+  setIdeaBadge(s.suggestions_new || 0);
+  const need = $("#needBar");
+  if (need) {
+    if (s.suggestions_new > 0) {
+      need.classList.remove("hidden", "ok");
+      need.innerHTML = `${s.suggestions_new} suggestion${s.suggestions_new===1?"":"s"} require review before they can be published. <a id="gotoIdeas">Open suggestion desk</a>`;
+      $("#gotoIdeas")?.addEventListener("click", () => openTab("ideas", { filterStatus: "new" }));
+    } else {
+      need.classList.remove("hidden");
+      need.classList.add("ok");
+      need.textContent = "Suggestion desk is clear — no new notes waiting.";
+    }
+  }
+  const cards = [
+    [s.suggestions_new || 0, "New suggestions (required)", "ideas", "new", true],
+    [s.suggestions_total || 0, "All suggestions", "ideas", "", false],
+    [s.applications_new, "New applications", "apps", "", false],
+    [s.applications_total, "Total applications", "apps", "", false],
+    [s.contacts_new, "New messages", "msgs", "", false],
+    [s.subscribers, "Subscribers", "subs", "", false],
+    [s.news, "News articles", "news", "", false],
+    [s.staff, "Staff members", "staff", "", false],
+    [s.contacts_total, "All messages", "msgs", "", false],
+    [s.notices, "Notice pages", "", "", false],
+  ];
+  $("#stats").innerHTML = cards.map(([n,l,goto,filt,urgent]) => {
+    const cls = ["card", goto ? "clickable" : "", (urgent && n > 0) ? "need" : ""].filter(Boolean).join(" ");
+    return `<div class="${cls}" ${goto ? `data-goto="${goto}" data-filt="${filt}"` : ""}><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  }).join("");
+  $$("#stats [data-goto]").forEach(c => c.addEventListener("click", () => openTab(c.dataset.goto, { filterStatus: c.dataset.filt })));
+  try {
+    const rec = await api("/api/admin/recent");
+    $("#recentApps").innerHTML = "<h3 style='margin-bottom:10px'>Latest applications</h3>" +
+      ((rec.applications||[]).map(r => `<div style="padding:6px 0;border-bottom:1px solid #f3f4f6"><strong>${esc(r.firstName)} ${esc(r.lastName)}</strong> · Grade ${esc(r.grade)} <span class="badge ${r.status}">${r.status}</span></div>`).join("") || "<p>None yet</p>");
+    $("#recentIdeas").innerHTML = "<h3 style='margin-bottom:10px'>Latest suggestions</h3>" +
+      ((rec.suggestions||[]).map(r => `<div data-open-ideas style="padding:6px 0;border-bottom:1px solid #f3f4f6;cursor:pointer"><strong>${esc(r.name)}</strong> · ${esc(r.category||"")} <span class="badge ${r.status}">${r.status}</span></div>`).join("") || "<p>None yet</p>");
+    $$("#recentIdeas [data-open-ideas]").forEach(el => el.addEventListener("click", () => openTab("ideas")));
+    $("#recentAct").innerHTML = "<h3 style='margin-bottom:10px'>Activity</h3>" +
+      ((rec.activity||[]).map(a => `<div style="padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:13px">${esc(a.summary)}<div style="color:#94a3b8;font-size:11px">${(a.created_at||"").replace("T"," ").slice(0,16)}</div></div>`).join("") || "<p>No activity</p>");
+  } catch(e) {}
+  return s;
+}
+
+async function loadApps() {
+  const rows = await api("/api/admin/applications");
+  $("#appsTable").innerHTML = table(
+    ["When","Student","Grade","Parent","Contact","Status","Action"],
+    rows.map(r => `<tr>
+      <td>${(r.created_at||"").replace("T"," ").slice(0,16)}</td>
+      <td><strong>${esc(r.firstName)} ${esc(r.lastName)}</strong><br><span style="color:#6b7280">${esc(r.email)}</span></td>
+      <td>${esc(r.grade)}</td>
+      <td>${esc(r.parentName)} (${esc(r.relationship)})<br>${esc(r.address||"")}</td>
+      <td>${esc(r.contact)}</td>
+      <td><span class="badge ${r.status}">${r.status}</span></td>
+      <td>
+        <select data-app="${r.id}">
+          ${["new","reviewing","accepted","rejected"].map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}
+        </select>
+        <button class="btn sm ghost" data-adel="${r.id}" style="margin-top:6px">Delete</button>
+      </td>
+    </tr>`).join("") || `<tr><td colspan="7">No applications yet.</td></tr>`
+  );
+  $$("[data-app]").forEach(sel => sel.addEventListener("change", async () => {
+    await api(`/api/admin/applications/${sel.dataset.app}`, { method: "PATCH", body: { status: sel.value } });
+    loadApps(); loadDash();
+  }));
+  $$("[data-adel]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Delete this application?")) return;
+    await api(`/api/admin/applications/${b.dataset.adel}`, { method: "DELETE" });
+    loadApps();
+  }));
+  const filt = $("#appFilter");
+  if (filt) filt.oninput = () => {
+    const q = filt.value.toLowerCase();
+    $$("#appsTable tbody tr").forEach(tr => { tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none"; });
+  };
+}
+
+async function loadMsgs() {
+  const rows = await api("/api/admin/contacts");
+  $("#msgsTable").innerHTML = table(
+    ["When","From","Message","Status","Action"],
+    rows.map(r => `<tr>
+      <td>${(r.created_at||"").replace("T"," ").slice(0,16)}</td>
+      <td><strong>${esc(r.name)}</strong><br>${esc(r.email)}<br>${esc(r.phone||"")}</td>
+      <td>${esc(r.message)}</td>
+      <td><span class="badge ${r.status}">${r.status}</span></td>
+      <td><select data-msg="${r.id}">
+        ${["new","read","replied"].map(s=>`<option ${s===r.status?"selected":""}>${s}</option>`).join("")}
+      </select></td>
+    </tr>`).join("") || `<tr><td colspan="5">No messages yet.</td></tr>`
+  );
+  $$("[data-msg]").forEach(sel => sel.addEventListener("change", async () => {
+    await api(`/api/admin/contacts/${sel.dataset.msg}`, { method: "PATCH", body: { status: sel.value } });
+    loadMsgs();
+  }));
+}
+
+function ideaRef(id) { return "SSN-" + String(id).padStart(4, "0"); }
+function ideaRank(s) { return ({ new: 0, reviewing: 1, done: 2, archived: 3 })[s] ?? 9; }
+
+async function patchIdea(id, body) {
+  await api(`/api/admin/suggestions/${id}`, { method: "PATCH", body });
+  await loadIdeas();
+  loadDash();
+}
+
+async function loadIdeas() {
+  const rows = await api("/api/admin/suggestions");
+  const statusSel = $("#ideaStatus");
+  const topicSel = $("#ideaTopic");
+  const statusVal = statusSel ? statusSel.value : "";
+  const topicVal = topicSel ? topicSel.value : "";
+  const q = (($("#ideaFilter") && $("#ideaFilter").value) || "").toLowerCase().trim();
+  const fresh = rows.filter(r => r.status === "new").length;
+  setIdeaBadge(fresh);
+  const need = $("#ideaNeed");
+  if (need) {
+    if (fresh) {
+      need.classList.remove("ok");
+      need.textContent = `${fresh} new suggestion${fresh===1?"":"s"} require a status. Add office notes, then mark reviewing or done before publishing.`;
+    } else {
+      need.classList.add("ok");
+      need.textContent = "No new suggestions. Reviewing items can be marked public on the board.";
+    }
+  }
+  const tally = { new: 0, reviewing: 0, done: 0, archived: 0 };
+  rows.forEach(r => { if (tally[r.status] != null) tally[r.status]++; });
+  const tallyEl = $("#ideaTally");
+  if (tallyEl) {
+    const chips = [
+      ["", "All", rows.length, false],
+      ["new", "New", tally.new, true],
+      ["reviewing", "Reviewing", tally.reviewing, false],
+      ["done", "Done", tally.done, false],
+      ["archived", "Archived", tally.archived, false],
+    ];
+    tallyEl.innerHTML = chips.map(([val, label, n, warn]) =>
+      `<button type="button" data-tally="${val}" class="${statusVal===val?"on":""} ${warn && n?"warn":""}">${label}<span class="n">${n}</span></button>`
+    ).join("");
+    $$("#ideaTally [data-tally]").forEach(b => b.addEventListener("click", () => {
+      if (statusSel) statusSel.value = b.dataset.tally;
+      loadIdeas();
+    }));
+  }
+  let filtered = rows.slice();
+  if (statusVal) filtered = filtered.filter(r => r.status === statusVal);
+  if (topicVal) filtered = filtered.filter(r => r.category === topicVal);
+  if (q) filtered = filtered.filter(r => `${r.name} ${r.role} ${r.email} ${r.phone} ${r.category} ${r.message} ${r.notes} ${ideaRef(r.id)}`.toLowerCase().includes(q));
+  filtered.sort((a, b) => ideaRank(a.status) - ideaRank(b.status) || b.id - a.id);
+  if (!filtered.some(r => r.id === selectedIdeaId)) selectedIdeaId = filtered[0] ? filtered[0].id : null;
+  const chosen = filtered.find(r => r.id === selectedIdeaId) || null;
+
+  const listHtml = filtered.map(r => {
+    const ref = ideaRef(r.id);
+    return `<button type="button" class="idea-item ${r.status==="new"?"row-new":""} ${r.id===selectedIdeaId?"on":""}" data-open-idea="${r.id}">
+      <div class="ref">${ref}${r.anonymous ? " · anon" : ""}</div>
+      <div class="who">${esc(r.name)} · ${esc(r.category||"General")}</div>
+      <div class="snip">${esc(r.message)}</div>
+      <div class="meta"><span class="badge ${r.status}">${r.status}</span>${r.public ? '<span class="badge done">public</span>' : ""}</div>
+    </button>`;
+  }).join("") || `<div class="empty-desk">No suggestions match these filters.</div>`;
+
+  let detailHtml = `<div class="empty-desk">Select a suggestion from the queue.</div>`;
+  if (chosen) {
+    const ref = ideaRef(chosen.id);
+    const canPub = chosen.status !== "new" && chosen.status !== "archived";
+    detailHtml = `
+      <div class="ref-lg">${ref} <span class="badge ${chosen.status}">${chosen.status}</span></div>
+      <p style="margin:8px 0 0;color:#64748b;font-size:13px">${esc((chosen.created_at||"").replace("T"," ").slice(0,16))} · ${esc(chosen.role||"")} · ${esc(chosen.category||"")}${chosen.anonymous ? " · anonymous" : ""}</p>
+      <p style="margin:10px 0 0"><strong>${esc(chosen.name)}</strong>${chosen.email ? "<br>"+esc(chosen.email) : ""}${chosen.phone ? "<br>"+esc(chosen.phone) : ""}</p>
+      <div class="letter">${esc(chosen.message)}</div>
+      <label>Office notes (required for done)</label>
+      <textarea data-notes="${chosen.id}" rows="3" placeholder="What the office decided">${esc(chosen.notes||"")}</textarea>
+      <label style="margin-top:12px;display:flex;gap:8px;align-items:center;font-size:14px">
+        <input type="checkbox" data-pub="${chosen.id}" ${chosen.public ? "checked" : ""} ${canPub ? "" : "disabled"} style="width:auto">
+        Publish on the public idea board ${canPub ? "" : "(review first)"}
+      </label>
+      <div class="act-row">
+        <select data-idea="${chosen.id}" data-prev="${chosen.status}">
+          ${["new","reviewing","done","archived"].map(s=>`<option ${s===chosen.status?"selected":""}>${s}</option>`).join("")}
+        </select>
+        ${chosen.status==="new" ? `<button class="btn sm" data-act="reviewing" data-id="${chosen.id}">Start review</button>` : ""}
+        ${chosen.status!=="done" ? `<button class="btn sm" data-act="done" data-id="${chosen.id}">Mark done</button>` : ""}
+        ${chosen.status!=="archived" ? `<button class="btn sm ghost" data-act="archived" data-id="${chosen.id}">Archive</button>` : ""}
+        <button class="btn sm ghost" data-idel="${chosen.id}">Delete</button>
+      </div>`;
+  }
+
+  $("#ideasTable").innerHTML = `<div class="inbox"><div class="inbox-list">${listHtml}</div><div class="inbox-detail">${detailHtml}</div></div>`;
+
+  $$("[data-open-idea]").forEach(b => b.addEventListener("click", () => {
+    selectedIdeaId = Number(b.dataset.openIdea);
+    loadIdeas();
+  }));
+  $$("[data-idea]").forEach(sel => sel.addEventListener("change", async () => {
+    const id = sel.dataset.idea;
+    const notes = ($(`[data-notes="${id}"]`)?.value || "").trim();
+    if (sel.value === "done" && !notes) {
+      alert("Add office notes before marking this suggestion done.");
+      sel.value = sel.dataset.prev || "new";
+      return;
+    }
+    try { await patchIdea(id, { status: sel.value, notes }); }
+    catch (err) { alert(err.message); sel.value = sel.dataset.prev || "new"; }
+  }));
+  $$("[data-act]").forEach(b => b.addEventListener("click", async () => {
+    const id = b.dataset.id;
+    const status = b.dataset.act;
+    const notes = ($(`[data-notes="${id}"]`)?.value || "").trim();
+    if (status === "done" && !notes) {
+      alert("Add office notes before marking this suggestion done.");
+      return;
+    }
+    try { await patchIdea(id, { status, notes }); }
+    catch (err) { alert(err.message); }
+  }));
+  $$("[data-pub]").forEach(cb => cb.addEventListener("change", async () => {
+    const id = cb.dataset.pub;
+    const status = $(`[data-idea="${id}"]`)?.value || "new";
+    if (cb.checked && status === "new") {
+      alert("Mark the suggestion as reviewing or done before publishing it.");
+      cb.checked = false;
+      return;
+    }
+    try { await api(`/api/admin/suggestions/${id}`, { method: "PATCH", body: { public: cb.checked ? 1 : 0 } }); loadIdeas(); }
+    catch (err) { alert(err.message); cb.checked = !cb.checked; }
+  }));
+  $$("[data-notes]").forEach(inp => inp.addEventListener("change", async () => {
+    try { await api(`/api/admin/suggestions/${inp.dataset.notes}`, { method: "PATCH", body: { notes: inp.value } }); }
+    catch (err) { alert(err.message); }
+  }));
+  $$("[data-idel]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Delete this suggestion?")) return;
+    await api(`/api/admin/suggestions/${b.dataset.idel}`, { method: "DELETE" });
+    selectedIdeaId = null;
+    loadIdeas(); loadDash();
+  }));
+  const filt = $("#ideaFilter");
+  if (filt && !filt.dataset.bound) {
+    filt.dataset.bound = "1";
+    filt.addEventListener("input", () => loadIdeas());
+  }
+  if (statusSel && !statusSel.dataset.bound) {
+    statusSel.dataset.bound = "1";
+    statusSel.addEventListener("change", () => loadIdeas());
+  }
+  if (topicSel && !topicSel.dataset.bound) {
+    topicSel.dataset.bound = "1";
+    topicSel.addEventListener("change", () => loadIdeas());
+  }
+}
+
+async function loadNews() {
+  const rows = await api("/api/admin/news");
+  $("#newsTable").innerHTML = table(
+    ["Title","Date","Published","Actions"],
+    rows.map(r => `<tr>
+      <td><strong>${esc(r.title)}</strong><br><code>${esc(r.slug)}</code></td>
+      <td>${esc(r.date_bs)}</td>
+      <td>${r.published ? "Yes" : "No"}</td>
+      <td>
+        <button class="btn sm ghost" data-nid="${r.id}">Edit</button>
+        <button class="btn sm" data-del="${r.id}">Delete</button>
+      </td>
+    </tr>`).join("") || `<tr><td colspan="4">No articles yet.</td></tr>`
+  );
+  $$("[data-del]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Delete this article?")) return;
+    await api(`/api/admin/news/${b.dataset.del}`, { method: "DELETE" });
+    loadNews();
+  }));
+  $$("[data-nid]").forEach(b => b.addEventListener("click", () => {
+    const item = rows.find(x => String(x.id) === String(b.dataset.nid)) || {};
+    openNews(item);
+  }));
+}
+
+function openNews(item={}) {
+  const f = $("#newsForm");
+  f.reset();
+  f.id.value = item.id || "";
+  f.slug.value = item.slug || "";
+  f.title.value = item.title || "";
+  f.date_bs.value = item.date_bs || "";
+  f.cover.value = item.cover || "";
+  f.excerpt.value = item.excerpt || "";
+  f.body.value = item.body || "";
+  f.published.value = String(item.published ?? 1);
+  $("#newsModal").classList.add("open");
+}
+$("#newNews").addEventListener("click", () => openNews({}));
+$("#closeNews").addEventListener("click", () => $("#newsModal").classList.remove("open"));
+$("#newsForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const body = {
+    slug: f.slug.value, title: f.title.value, date_bs: f.date_bs.value,
+    cover: f.cover.value, excerpt: f.excerpt.value, body: f.body.value,
+    published: Number(f.published.value), images: []
+  };
+  if (f.id.value) await api(`/api/admin/news/${f.id.value}`, { method: "PUT", body });
+  else await api("/api/admin/news", { method: "POST", body });
+  $("#newsModal").classList.remove("open");
+  loadNews();
+});
+
+async function loadStaff() {
+  const rows = await api("/api/staff");
+  $("#staffTable").innerHTML = table(
+    ["","Name","Role","Dept","Subject"],
+    rows.map(r => `<tr>
+      <td>${r.image ? `<img src="${esc(r.image)}" style="width:40px;height:40px;border-radius:50%;object-fit:cover">` : ""}</td>
+      <td>${esc(r.name)}</td>
+      <td>${esc(r.role)}</td>
+      <td>${esc(r.department||"")}</td>
+      <td>${esc(r.subject||"")}</td>
+    </tr>`).join("")
+  );
+}
+
+async function loadSubs() {
+  const rows = await api("/api/admin/subscribers");
+  $("#subsTable").innerHTML = table(
+    ["Email","Subscribed"],
+    rows.map(r => `<tr><td>${esc(r.email)}</td><td>${(r.created_at||"").replace("T"," ").slice(0,16)}</td></tr>`).join("") || `<tr><td colspan="2">None yet.</td></tr>`
+  );
+}
+
+async function loadSettings() {
+  const s = await api("/api/school");
+  const keys = ["school_name","phone","email","address","office_hours","students","ero_score","tagline"];
+  $("#settingsForm").innerHTML = keys.map(k => `<label>${k.replaceAll("_"," ")}</label><input name="${k}" value="${esc(s[k]||"")}">`).join("") +
+    `<button class="btn" type="submit" style="margin-top:16px">Save settings</button><div class="err" id="setMsg"></div>`;
+}
+document.getElementById("settingsForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const settings = {};
+  [...e.target.elements].forEach(el => { if (el.name) settings[el.name] = el.value; });
+  await api("/api/admin/settings", { method: "PUT", body: { settings } });
+  const m = $("#setMsg"); if (m) { m.style.color = "#065f46"; m.textContent = "Saved."; }
+});
+async function downloadCsv(path, filename) {
+  const res = await fetch(path, { headers: { Authorization: "Bearer " + TOKEN } });
+  if (!res.ok) return alert("Export failed");
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+document.getElementById("exportApps")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await downloadCsv("/api/admin/export/applications", "applications.csv");
+});
+document.getElementById("exportIdeas")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await downloadCsv("/api/admin/export/suggestions", "suggestions.csv");
+});
+
+(async () => {
+  if (!TOKEN) return;
+  try {
+    USER = await api("/api/admin/me");
+    showApp();
+  } catch { logout(false); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+services:
+  web:
+    build: .
+    image: siddeshwor-school:latest
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+    volumes:
+      - school-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  school-data:
